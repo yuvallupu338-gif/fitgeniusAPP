@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FITAI PRO | CaliTree Offline Coach</title>
+    <style>
+        /* =========================================
+           1. CALISTHENICS & NUTRITION THEME
+           ========================================= */
+        :root {
+            --primary: #ff6a00;
+            --primary-glow: rgba(255, 106, 0, 0.3);
+            --earth: #3e2723;
+            --leaves: #1b5e20;
+            --bg-dark: #0a0a0a;
+            --bg-card: rgba(20, 20, 20, 0.8);
+            --bg-input: rgba(30, 30, 30, 0.9);
+            --text-main: #ffffff;
+            --text-muted: #9e9e9e;
+            --glass-border: rgba(255, 255, 255, 0.05);
+            --radius-lg: 24px;
+            --radius-md: 16px;
+            --danger: #ff4b2b;
+            --safe: #00d2ff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg-dark); color: var(--text-main); overflow-x: hidden; height: 100vh; display: flex; flex-direction: column; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
+
+        /* Onboarding */
+        #onboarding-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #111 0%, #000 100%);
+            z-index: 2000; display: flex; flex-direction: column; padding: 40px 24px; transition: 0.8s ease; overflow-y: auto;
+        }
+        .progress-bar-container { width: 100%; background: rgba(255,255,255,0.1); height: 8px; border-radius: 10px; margin-bottom: 30px; }
+        #progress-fill { width: 0%; height: 100%; background: var(--primary); border-radius: 10px; transition: 0.5s ease; box-shadow: 0 0 15px var(--primary-glow); }
+
+        #question-box { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; min-height: 50vh; }
+        .q-title { font-size: 26px; font-weight: 900; color: var(--primary); margin-bottom: 12px; line-height: 1.3; }
+        .q-sub { font-size: 14px; color: var(--text-muted); margin-bottom: 30px; }
+
+        input, select { 
+            width: 100%; padding: 18px; background: var(--bg-input); border: 1px solid #333; 
+            color: white; border-radius: var(--radius-md); font-size: 16px; margin-bottom: 20px;
+        }
+        input:focus { border-color: var(--primary); outline: none; }
+        
+        .options-list { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding-bottom: 20px; }
+        .option-item {
+            background: var(--bg-input); border: 2px solid #222; padding: 15px; 
+            border-radius: var(--radius-md); cursor: pointer; text-align: center; transition: 0.3s; font-size: 14px; font-weight: 800;
+        }
+        .option-item.selected { border-color: var(--primary); background: var(--primary-glow); color: var(--primary); transform: scale(0.97); }
+        .option-item.wide { grid-column: span 2; }
+
+        .btn-wiz { padding: 18px; border-radius: var(--radius-md); border: none; font-size: 16px; font-weight: 900; cursor: pointer; transition: 0.3s; }
+        .btn-next { background: var(--primary); color: #000; flex: 2; box-shadow: 0 5px 20px var(--primary-glow); }
+        .btn-prev { background: #222; color: #fff; flex: 1; }
+
+        /* Main App Interface */
+        #main-app { display: none; opacity: 0; flex-direction: column; height: 100vh; transition: 0.8s; }
+        header { padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); z-index: 100; border-bottom: 1px solid #222; }
+        .content { flex-grow: 1; overflow-y: auto; padding: 20px; padding-bottom: 120px; }
+        .card { background: var(--bg-card); border-radius: var(--radius-lg); padding: 25px; margin-bottom: 20px; border: 1px solid var(--glass-border); }
+        
+        /* Stats & Nutrition */
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        .stat-box { background: rgba(0,0,0,0.4); padding: 20px; border-radius: var(--radius-md); text-align: center; border: 1px solid var(--glass-border); }
+        .stat-val { font-size: 26px; font-weight: 900; color: var(--primary); }
+        .log-inputs { display: flex; gap: 10px; margin-bottom: 15px; }
+        .log-inputs input { margin-bottom: 0; padding: 15px; font-size: 16px; }
+        
+        /* Dynamic Diet Plan */
+        .diet-plan-box { background: rgba(0, 0, 0, 0.4); border: 1px solid #333; border-radius: 12px; padding: 20px; margin-top: 20px; }
+        .diet-meal { border-bottom: 1px solid rgba(255,255,255,0.1); padding: 12px 0; }
+        .diet-meal:last-child { border-bottom: none; padding-bottom: 0; }
+        .diet-meal strong { color: var(--text-main); font-size: 15px; display: block; margin-bottom: 6px; }
+        .diet-meal p { font-size: 13px; color: #ccc; margin: 0; line-height: 1.5; }
+
+        /* The Skill Tree */
+        #tree-container {
+            display: flex; flex-direction: column-reverse; align-items: center; position: relative; padding: 40px 0;
+            background: linear-gradient(to top, var(--earth) 0%, #1a1a1a 40%, var(--leaves) 100%);
+            border-radius: var(--radius-lg); border: 2px solid #333; overflow: hidden; box-shadow: inset 0 0 50px rgba(0,0,0,0.8); margin-bottom: 20px;
+        }
+        #tree-container::before { content: ''; position: absolute; top: 0; bottom: 0; left: 50%; transform: translateX(-50%); width: 8px; background: rgba(255,255,255,0.1); z-index: 1; }
+        #tree-progress { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 8px; background: var(--primary); z-index: 2; transition: height 1s ease; box-shadow: 0 0 15px var(--primary); }
+
+        .tree-node { position: relative; z-index: 3; display: flex; flex-direction: column; align-items: center; width: 100%; margin-bottom: 50px; text-align: center; opacity: 0.4; filter: grayscale(1); transition: 0.5s; }
+        .tree-node:last-child { margin-bottom: 0; }
+        .tree-node.unlocked { opacity: 1; filter: grayscale(0); transform: scale(1.05); }
+        
+        .node-icon { width: 70px; height: 70px; border-radius: 50%; background: #111; border: 3px solid #444; display: flex; justify-content: center; align-items: center; font-size: 30px; margin-bottom: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); z-index: 4; }
+        .tree-node.unlocked .node-icon { border-color: var(--primary); background: var(--bg-dark); box-shadow: 0 0 20px var(--primary-glow); }
+        .node-details { background: rgba(0,0,0,0.7); padding: 10px 15px; border-radius: 12px; border: 1px solid #333; width: 80%; }
+        .node-title { font-size: 18px; font-weight: 900; color: #fff; margin-bottom: 2px; }
+        .tree-node.unlocked .node-title { color: var(--primary); }
+        .node-req { font-size: 12px; color: var(--text-muted); font-weight: bold; }
+
+        /* Workout UI */
+        .ex-item { background: rgba(0,0,0,0.6); padding: 18px; border-radius: 12px; margin-bottom: 10px; border-right: 4px solid var(--primary); display: flex; flex-direction: column; }
+        .ex-item.static { border-right-color: #ff2a5f; }
+        .ex-content { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 10px; }
+        .ex-info { flex: 1; }
+        .ex-stats { text-align: center; background: rgba(0,0,0,0.8); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--primary); min-width: 90px; box-shadow: inset 0 0 10px var(--primary-glow); }
+        .ex-toggle { margin-top: 15px; font-size: 13px; color: var(--primary); cursor: pointer; display: inline-block; font-weight: bold; background: rgba(255,106,0,0.1); padding: 8px 14px; border-radius: 20px; user-select: none; }
+        .ex-explanation { display: none; margin-top: 12px; padding: 15px; background: rgba(0,0,0,0.4); border-radius: 8px; font-size: 13px; color: #ddd; line-height: 1.6; border-right: 2px solid var(--primary); }
+
+        /* Unlock Modal Graphic */
+        #unlock-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 3000; display: none; flex-direction: column; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.5s; text-align: center; padding: 20px; }
+        .graphic-container { width: 200px; height: 200px; border-radius: 50%; background: radial-gradient(circle, var(--primary) 0%, transparent 70%); display: flex; justify-content: center; align-items: center; font-size: 80px; box-shadow: 0 0 50px var(--primary); margin-bottom: 30px; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); box-shadow: 0 0 80px var(--primary); } 100% { transform: scale(1); } }
+        .unlock-title { font-size: 40px; font-weight: 900; color: #fff; letter-spacing: 2px; margin-bottom: 10px; text-shadow: 0 5px 10px rgba(0,0,0,0.5); }
+        .unlock-sub { font-size: 20px; color: var(--primary); margin-bottom: 30px; font-weight: bold; }
+
+        nav.bottom-nav { position: fixed; bottom: 0; width: 100%; background: rgba(10, 10, 10, 0.95); display: flex; justify-content: space-around; padding: 12px 0; border-top: 1px solid #222; padding-bottom: env(safe-area-inset-bottom, 15px); z-index: 1000; backdrop-filter: blur(10px); }
+        .nav-link { background: none; border: none; color: #555; font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 4px; font-weight: 900; cursor: pointer; transition: 0.3s; }
+        .nav-link.active { color: var(--primary); transform: translateY(-3px); }
+    </style>
+</head>
+<body>
+
+    <div id="onboarding-screen">
+        <div class="progress-bar-container"><div id="progress-fill"></div></div>
+        <div id="step-info" style="font-size: 13px; color: var(--primary); margin-bottom: 5px; font-weight: bold;"></div>
+        <div id="question-box"></div>
+        <div style="display: flex; gap: 10px; margin-top: 20px; flex-shrink: 0; padding-bottom: 20px;">
+            <button class="btn-wiz btn-prev" id="btn-prev" onclick="ui.moveStep(-1)">חזור</button>
+            <button class="btn-wiz btn-next" id="btn-next" onclick="ui.moveStep(1)">המשך</button>
+        </div>
+    </div>
+
+    <div id="unlock-modal">
+        <div class="graphic-container" id="unlock-icon">🛸</div>
+        <div class="unlock-title">SKILL UNLOCKED!</div>
+        <div class="unlock-sub" id="unlock-name">FULL PLANCHE</div>
+        <p style="color: #ccc; margin-bottom: 40px; font-size: 16px; line-height: 1.5; padding: 0 20px;" id="unlock-desc">הגוף שלך התחזק והתרגיל ישולב באימונים מעכשיו.</p>
+        <button class="btn-wiz btn-next" style="padding: 18px 50px; width: auto;" onclick="ui.closeModal()">המשך לטפס</button>
+    </div>
+
+    <div id="main-app">
+        <header>
+            <div style="font-weight: 900; font-size: 22px; letter-spacing: 1px;">FITAI<span style="color:var(--primary);">PRO</span></div>
+            <div style="font-size: 11px; font-weight: bold; color: var(--text-main); background: #222; padding: 6px 12px; border-radius: 20px; border: 1px solid #444;">
+                שלב: <span id="header-level" style="color:var(--primary);">אדמה</span>
+            </div>
+        </header>
+
+        <div class="content">
+            
+            <div id="tab-tree" style="display: block;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <h2 style="font-weight: 900; font-size: 22px;">עץ המיומנויות</h2>
+                    <p style="font-size: 14px; color: var(--text-muted);">סיימת <strong style="color:var(--primary); font-size: 18px;" id="ui-workouts-done">0</strong> אימונים.</p>
+                </div>
+                <div id="tree-container"><div id="tree-progress"></div></div>
+            </div>
+
+            <div id="tab-nutrition" style="display: none;">
+                <div class="card" style="border-color: rgba(0, 210, 255, 0.3); box-shadow: 0 0 20px rgba(0, 210, 255, 0.1);">
+                    <h2 style="margin-bottom: 15px; font-weight: 900;">מעקב <b style="color:var(--safe);">מים</b> 💧</h2>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div>
+                            <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">שתית היום</div>
+                            <div class="stat-val" id="ui-water" style="color:var(--safe); font-size: 24px;">0 / 3 L</div>
+                        </div>
+                        <button onclick="engine.logWater()" style="padding:15px 25px; border-radius:12px; border:none; background:var(--safe); color:#000; font-weight:900; font-size:16px; cursor:pointer;">+ כוס</button>
+                    </div>
+                    <div style="width:100%; background:rgba(0,0,0,0.5); height:8px; border-radius:4px; border: 1px solid var(--glass-border);">
+                        <div id="water-progress" style="width:0%; height:100%; background:var(--safe); border-radius:4px; transition:0.3s; box-shadow: 0 0 10px var(--safe);"></div>
+                    </div>
+                </div>
+
+                <div class="card" style="border-color: rgba(255, 106, 0, 0.3); box-shadow: 0 0 20px rgba(255, 106, 0, 0.1);">
+                    <h2 style="margin-bottom: 15px; font-weight: 900;">מעקב <b style="color:var(--primary);">תזונה</b></h2>
+                    <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;" id="nutrition-subtitle">מתאפס בחצות.</p>
+                    <div class="stat-grid">
+                        <div class="stat-box"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">חלבון נותר</div><div class="stat-val" id="ui-p">0g</div></div>
+                        <div class="stat-box"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">קלוריות נותרו</div><div class="stat-val" id="ui-c" style="color:#fff;">0</div></div>
+                    </div>
+                    <div class="log-inputs">
+                        <input type="number" id="log-p" placeholder="חלבון (g)">
+                        <input type="number" id="log-c" placeholder="קלוריות">
+                    </div>
+                    <button onclick="engine.logMeal()" style="width:100%; padding:15px; border-radius:var(--radius-md); border:none; background:#333; color:#fff; font-weight:900; cursor:pointer;">עדכן יומן +</button>
+                </div>
+
+                <div class="card" id="diet-plan-card">
+                    <h2 id="diet-plan-title" style="margin-bottom: 10px; font-weight: 900;">תפריט יומי</h2>
+                    <p id="diet-plan-desc" style="font-size: 13px; color: var(--text-muted);">התפריט מתחלף אוטומטית בכל יום ולוקח בחשבון את האלרגיות שלך.</p>
+                    <div class="diet-plan-box" id="diet-plan-meals"></div>
+                </div>
+            </div>
+
+            <div id="tab-workout" style="display: none;">
+                <div class="card">
+                    <h2 style="margin-bottom: 10px; font-weight: 900;">אימון <span style="color:var(--primary);">סטריט</span></h2>
+                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">האימון, הסטים וזמני המנוחה מותאמים לרמה שלך ולמיומנויות שנפתחו.</p>
+                    
+                    <select id="workout-time-select" style="margin-bottom: 20px; padding: 15px; font-size: 14px;">
+                        <option value="30" selected>30 דקות - אימון קצר וממוקד</option>
+                        <option value="60">60 דקות - אימון מלא</option>
+                        <option value="90">90 דקות - אקסטרים הארדקור</option>
+                    </select>
+
+                    <button id="btn-gen-workout" onclick="engine.generateWorkout()" style="width:100%; padding:20px; border-radius:var(--radius-md); border:none; background:linear-gradient(45deg, var(--primary), #ff9d00); color:#000; font-weight:900; font-size: 16px; cursor:pointer; box-shadow: 0 5px 20px var(--primary-glow);">טען אימון אישי להיום</button>
+                    <div id="workout-res" style="margin-top: 30px;"></div>
+                </div>
+            </div>
+
+            <div id="tab-settings" style="display: none;">
+                <div class="card">
+                    <h2 style="margin-bottom: 20px; font-weight: 900;">הגדרות אישיות ומאמן</h2>
+                    
+                    <div style="background: rgba(255, 106, 0, 0.1); border: 1px solid var(--primary); padding: 15px; border-radius: 12px; margin-bottom: 20px; text-align: center;">
+                        <strong style="color:var(--primary); font-size:16px;">המאמן המציק (Offline)</strong>
+                        <p style="font-size:12px; color:#ccc; margin-top:5px; margin-bottom:15px;">האפליקציה תישמר על המכשיר ותשלח התראות מקומיות כשהיא פתוחה.</p>
+                        <button onclick="pushCoach.requestPermission()" style="padding:12px 20px; border-radius:8px; border:none; background:var(--primary); color:#000; font-weight:bold; cursor:pointer; width:100%;">אפשר התראות ו-Offline 🔔</button>
+                    </div>
+
+                    <div style="display: flex; gap:10px;">
+                        <div style="flex:1;">
+                            <label style="font-size: 13px; color:var(--text-muted); display: block; margin-bottom: 8px;">גיל:</label>
+                            <input type="number" id="set-age" style="margin-bottom: 15px; padding: 12px;">
+                        </div>
+                        <div style="flex:1;">
+                            <label style="font-size: 13px; color:var(--text-muted); display: block; margin-bottom: 8px;">גובה (ס"מ):</label>
+                            <input type="number" id="set-height" style="margin-bottom: 15px; padding: 12px;">
+                        </div>
+                        <div style="flex:1;">
+                            <label style="font-size: 13px; color:var(--text-muted); display: block; margin-bottom: 8px;">משקל (ק"ג):</label>
+                            <input type="number" id="set-weight" style="margin-bottom: 15px; padding: 12px;">
+                        </div>
+                    </div>
+
+                    <label style="font-size: 13px; color:var(--text-muted); display: block; margin-bottom: 8px;">יעד תזונתי:</label>
+                    <select id="set-goal" style="margin-bottom: 15px; padding: 12px;">
+                        <option value="חיטוב ועיצוב (Fat Loss)">חיטוב ועיצוב (Fat Loss)</option>
+                        <option value="מסת שריר (Muscle Gain)">מסת שריר (Muscle Gain)</option>
+                        <option value="כוח ותחזוקה">כוח ותחזוקה (Maintenance)</option>
+                    </select>
+
+                    <label style="font-size: 13px; color:var(--text-muted); display: block; margin-bottom: 8px;">רמת כושר נוכחית:</label>
+                    <select id="set-level" style="margin-bottom: 15px; padding: 12px;">
+                        <option value="אדמה">אדמה (מתחיל)</option>
+                        <option value="גזע">גזע (בינוני)</option>
+                        <option value="צמרת">צמרת (מתקדם)</option>
+                    </select>
+
+                    <label style="font-size: 13px; color:var(--text-muted); display: block; margin-bottom: 8px;">קצב רצוי לתוצאות:</label>
+                    <select id="set-pace" style="margin-bottom: 20px; padding: 12px;">
+                        <option value="רגיל">קצב רגיל (אימונים סטנדרטיים)</option>
+                        <option value="אקסטרים">אקסטרים (נפח גבוה, תוצאות מהירות)</option>
+                    </select>
+                    
+                    <label style="font-size: 13px; color:var(--text-muted); display: block; margin-bottom: 8px;">אלרגיות / שנואים:</label>
+                    <input type="text" id="set-allergies" placeholder="למשל: בוטנים, חלב..." style="margin-bottom: 20px; padding: 12px;">
+
+                    <button onclick="engine.saveSettings()" style="width:100%; padding:15px; border-radius:var(--radius-md); border:none; background:#fff; color:#000; font-weight:900; cursor:pointer;">עדכן מדדים אישיים</button>
+                    <button onclick="engine.hardReset()" style="width:100%; padding:15px; border-radius:var(--radius-md); border:1px solid var(--danger); background:transparent; color:var(--danger); font-weight:900; margin-top:20px; cursor:pointer;">כרות את העץ ומחק נתונים</button>
+                </div>
+            </div>
+
+        </div>
+
+        <nav class="bottom-nav">
+            <button class="nav-link active" onclick="ui.switchTab('tree', this)"><div style="font-size: 20px; margin-bottom:2px;">🌳</div>העץ</button>
+            <button class="nav-link" onclick="ui.switchTab('nutrition', this)"><div style="font-size: 20px; margin-bottom:2px;">🍎</div>תזונה</button>
+            <button class="nav-link" onclick="ui.switchTab('workout', this)"><div style="font-size: 20px; margin-bottom:2px;">🔥</div>אימון</button>
+            <button class="nav-link" onclick="ui.switchTab('settings', this)"><div style="font-size: 20px; margin-bottom:2px;">⚙️</div>הגדרות</button>
+        </nav>
+    </div>
+
+    <script>
+        /* =========================================
+           PUSH NOTIFICATIONS & PWA COACH ENGINE
+           ========================================= */
+        const pushCoach = {
+            msgsMorning: ["קום יא מפלצת! הברזל (או הרצפה) מחכה לך.", "בוקר טוב אלוף, לא מוותרים היום."],
+            msgsNoon: ["איפה החלבון שלך? תדאג לאכול משהו בונה שריר.", "העץ לא יטפס על עצמו, תתעורר!"],
+            msgsEvening: ["סוגרים את היום! איך היה המאזן הקלורי?", "זמן התאוששות. תאכל טוב, תישן טוב."],
+            
+            async requestPermission() {
+                if (!('Notification' in window)) {
+                    alert("הדפדפן שלך לא תומך בהתראות.");
+                    return;
+                }
+                
+                try {
+                    const permission = await Notification.requestPermission();
+                    if (permission === "granted") {
+                        // רישום Service Worker מתוקן ללא שגיאות נתיב
+                        if ('serviceWorker' in navigator) {
+                            navigator.serviceWorker.register('sw.js').then(() => {
+                                console.log("SW Registered successfully.");
+                            }).catch(err => {
+                                console.log("SW Registration skipped (requires HTTPS or Localhost).");
+                            });
+                        }
+                        
+                        new Notification("המאמן הופעל! 🔥", { body: "אני אדאג להזכיר לך להתאמן." });
+                        alert("מעולה! ההתראות יקפצו כל עוד האפליקציה פתוחה או ממוזערת בדפדפן.");
+                        this.startLocalEngine();
+                    } else {
+                        alert("חייב לאשר התראות כדי שהמאמן יעבוד.");
+                    }
+                } catch(e) {
+                    alert("שגיאה בהפעלת התראות. ודא שהאתר מאובטח.");
+                }
+            },
+
+            startLocalEngine() {
+                setInterval(() => {
+                    const now = new Date();
+                    const h = now.getHours();
+                    const m = now.getMinutes();
+                    if (h === 8 && m === 0) this.send(this.msgsMorning);
+                    if (h === 14 && m === 0) this.send(this.msgsNoon);
+                    if (h === 20 && m === 0) this.send(this.msgsEvening);
+                }, 60000);
+            },
+
+            send(arrayPool) {
+                if ("Notification" in window && Notification.permission === "granted") {
+                    const txt = arrayPool[Math.floor(Math.random() * arrayPool.length)];
+                    new Notification("מאמן CaliTree 💬", { body: txt });
+                }
+            }
+        };
+
+        /* =========================================
+           DATA: CALISTHENICS & NUTRITION
+           ========================================= */
+        const questions = [
+            { id: "name", q: "איך קוראים לך?", type: "text" },
+            { id: "gender", q: "מה המגדר שלך?", type: "select", opts: ["גבר", "אישה", "אחר"] },
+            { id: "age", q: "גיל:", type: "number" },
+            { id: "height", q: "גובה (ס\"מ):", type: "number" },
+            { id: "weight", q: "משקל (ק\"ג):", type: "number" },
+            { id: "goal", q: "מה היעד העיקרי שלך?", type: "select", opts: ["חיטוב ועיצוב (Fat Loss)", "מסת שריר (Muscle Gain)", "כוח ותחזוקה"] },
+            { id: "pace", q: "באיזה קצב תרצה להתקדם?", type: "select", opts: ["קצב רגיל (בריא ויציב)", "אקסטרים (קורע את עצמי לתוצאות)"] },
+            { id: "level", q: "מה רמת הקליסטניקס שלך?", type: "select", opts: ["אדמה (מתחיל)", "גזע (מתח ומקבילים)", "צמרת (מחפש מיומנויות)"] },
+            { id: "water", q: "יעד מים יומי (ליטר):", type: "number", ph: "למשל: 3" },
+            { id: "allergies", q: "אלרגיות / מאכלים שנואים:", type: "text", ph: "למשל: חלב, בוטנים", sub: "אם אין, השאר ריק" },
+            { id: "gym_access", q: "איפה אתה מתאמן?", type: "select", opts: ["קליסטניקס (פארק/רחוב)", "סטודיו (משקולות ומתח)", "מכון כושר מלא", "בית"] },
+            { id: "has_pullup", q: "יש גישה למוט מתח?", type: "select", opts: ["כן", "לא"], condition: (ans) => ans.gym_access === "בית" },
+            { id: "has_dips", q: "יש מקבילים (Dip Bars)?", type: "select", opts: ["כן", "לא"], condition: (ans) => ans.gym_access === "בית" },
+            { id: "ready", q: "מוכן להתחיל את המסע אישי?", type: "select", opts: ["כן, לגמרי!", "תן בראש"] }
+        ];
+
+        const treeNodes = [
+            { id: "basics", name: "אדמה (Basics)", req: 0, icon: "🌱", desc: "שכיבות סמיכה, סקוואטים וחיזוק הליבה." },
+            { id: "lsit", name: "L-Sit", req: 5, icon: "🧘‍♂️", desc: "שליטה באגן ובטן מברזל." },
+            { id: "backlever", name: "Back Lever", req: 15, icon: "🦇", desc: "כוח משיכה הפוך, כתפיים חזקות אחורה." },
+            { id: "muscleup", name: "Muscle-Up", req: 25, icon: "🦅", desc: "המעבר מהמשיכה לדחיפה." },
+            { id: "frontlever", name: "Front Lever", req: 40, icon: "🪨", desc: "התנגדות לכוח המשיכה, גב רחב מפלדה." },
+            { id: "planche", name: "Full Planche", req: 60, icon: "🛸", desc: "הצמרת. ריחוף באוויר על סמך כתפיים בלבד." }
+        ];
+
+        const exerciseDB = [
+            { n: "שכיבות סמיכה יהלום", type: "rep", skill: "basics", exp: "הנח ידיים קרוב זו לזו בצורת יהלום. רד עד שהחזה נוגע בידיים ודחוף חזרה." },
+            { n: "שכיבות סמיכה רחבות", type: "rep", skill: "basics", exp: "הנח ידיים רחב יותר מרוחב הכתפיים. רד בזהירות ודחוף למעלה." },
+            { n: "סקוואט קופץ", type: "rep", skill: "basics", exp: "בצע סקוואט רגיל, ומהתחתית התפוצץ למעלה לקפיצה באוויר." },
+            { n: "לאנג'ים קופצים", type: "rep", skill: "basics", exp: "התחל ממכרע, קפוץ באוויר והחלף בין הרגליים." },
+            { n: "פלאנק סטטי", type: "static", skill: "basics", exp: "הישען על האמות, גוף ישר כמו קרש. כווץ בטן וישבן." },
+            { n: "מקבילים על ספסל/כיסא", type: "rep", skill: "basics", exp: "השען ידיים על כיסא מאחוריך, רגליים קדימה. רד עם האגן לרצפה ודחוף." },
+            { n: "מתח קלאסי", type: "rep", skill: "basics", reqEq: "pullup", exp: "אחוז במוט ברוחב הכתפיים. משוך עד שהסנטר עובר את המוט." },
+            { n: "מקבילים (Dips)", type: "rep", skill: "basics", reqEq: "dips", exp: "הישען על המקבילים, רד לאט עד לזווית של 90 מעלות במרפק ודחוף חזרה." },
+            { n: "Tuck L-Sit", type: "static", skill: "lsit", exp: "תמוך בגוף על הידיים, הרם ברכיים לחזה והחזק את הגוף באוויר." },
+            { n: "V-Ups", type: "rep", skill: "lsit", exp: "שכב ישר. הרם ידיים ורגליים בו זמנית למצב V." },
+            { n: "Skin the Cat", type: "rep", skill: "backlever", reqEq: "pullup", exp: "היתלה על המוט, העבר רגליים אחורה עד למתיחה, וחזור." },
+            { n: "Tuck Back Lever", type: "static", skill: "backlever", reqEq: "pullup", exp: "היתלה הפוך, קפל ברכיים לחזה והחזק גוף מקביל לקרקע." },
+            { n: "מתח מתפרץ לחזה", type: "rep", skill: "muscleup", reqEq: "pullup", exp: "משוך למעלה בעוצמה, במטרה לגעת עם החזה במוט." },
+            { n: "Tuck Front Lever", type: "static", skill: "frontlever", reqEq: "pullup", exp: "היתלה על המוט, קפל ברכיים לחזה ומשוך את הגוף למצב אופקי." },
+            { n: "Tuck Planche", type: "static", skill: "planche", exp: "הישען על הידיים, קפל ברכיים ונתק רגליים מהקרקע. משקל קדימה." },
+            { n: "שכיבות סמיכה Pseudo", type: "rep", skill: "planche", exp: "שכיבות סמיכה כשהידיים קרובות למותניים והגוף נוטה קדימה." }
+        ];
+
+        const mealsDB = {
+            breakfast: [
+                { n: "חביתת חלבון עשירה", desc: "3 ביצים (חביתה), חצי גביע קוטג' 5%, וסלט ירקות." },
+                { n: "דייסת שיבולת שועל", desc: "כוס שיבולת שועל, מנת חלבון (אבקה/יוגורט), חמאת בוטנים." },
+                { n: "פנקייק חלבון", desc: "פנקייק משיבולת שועל, ביצים ויוגורט עם מעט דבש." },
+                { n: "שייק בוקר מהיר", desc: "חלב סויה/שקדים, בננה, מנת חלבון, ואגוזים." }
+            ],
+            snack: [
+                { n: "יוגורט ואגוזים", desc: "גביע יוגורט פרו 20ג', חופן שקדים או אגוזי מלך." },
+                { n: "פרי וכריך", desc: "2 פרוסות לחם כוסמין עם טחינה, תפוח עץ." },
+                { n: "אדממה", desc: "קערת אדממה חלוט במלח." },
+                { n: "שייק ירוק", desc: "שייק עלים ירוקים, חצי בננה וזרעי צ'יה." }
+            ],
+            lunch: [
+                { n: "עוף ואורז קלאסי", desc: "200 גרם חזה עוף, כוס אורז (מלא/בסמטי), שעועית ירוקה." },
+                { n: "מוקפץ טופו", desc: "טופו קשה מוקפץ עם אטריות סובה וירקות." },
+                { n: "דג אפוי", desc: "פילה סלמון או אמנון, תפוח אדמה אפוי, אספרגוס." },
+                { n: "קציצות בקר רזה", desc: "קציצות בקר, קינואה, וסלט גדול." }
+            ],
+            dinner: [
+                { n: "סלט טונה", desc: "קופסת טונה במים, ביצה קשה, סלט ענק, כף טחינה." },
+                { n: "שקשוקה", desc: "שקשוקה מ-3 ביצים, 2 פרוסות לחם כוסמין, סלט ירקות." },
+                { n: "גבינות וירקות", desc: "גביע קוטג', פרוסת גבינה צהובה, לחם מלא וירקות חתוכים." },
+                { n: "טורטייה עוף", desc: "טורטייה מחיטה מלאה במילוי עוף וסלט אבוקדו." }
+            ]
+        };
+
+        /* =========================================
+           ENGINE LOGIC
+           ========================================= */
+        class CaliEngine {
+            constructor() {
+                this.dbKey = 'cali_master_final_patched';
+                this.state = JSON.parse(localStorage.getItem(this.dbKey)) || { 
+                    done: false, ans: {}, workoutsCompleted: 0, unlockedSkills: ['basics'],
+                    daily: { consumedP: 0, consumedC: 0, water: 0, date: new Date().toDateString(), menu: null }
+                };
+            }
+            save() { localStorage.setItem(this.dbKey, JSON.stringify(this.state)); }
+
+            hardReset() {
+                if(confirm("לכרות את העץ ולאפס נתונים לחלוטין?")) {
+                    localStorage.removeItem(this.dbKey); window.location.reload();
+                }
+            }
+
+            checkMidnightReset() {
+                const today = new Date().toDateString();
+                if (this.state.daily.date !== today || !this.state.daily.menu) {
+                    this.state.daily = { consumedP: 0, consumedC: 0, water: 0, date: today, menu: this.generateDailyMenu() };
+                    this.save();
+                }
+            }
+
+            generateDailyMenu() {
+                const allergies = (this.state.ans.allergies || "").toLowerCase().split(',').map(s => s.trim()).filter(s => s.length > 1 && s !== 'אין' && s !== 'לא');
+                
+                const pickMeal = (mealArray) => {
+                    const safeMeals = mealArray.filter(m => !allergies.some(a => m.desc.toLowerCase().includes(a) || m.n.toLowerCase().includes(a)));
+                    if (safeMeals.length === 0) return { n: "חסר תפריט", desc: "האלרגיות מסננות הכל, ערוך הגדרות." };
+                    return safeMeals[Math.floor(Math.random() * safeMeals.length)];
+                };
+
+                return { breakfast: pickMeal(mealsDB.breakfast), snack: pickMeal(mealsDB.snack), lunch: pickMeal(mealsDB.lunch), dinner: pickMeal(mealsDB.dinner) };
+            }
+
+            logMeal() {
+                const p = Number(document.getElementById('log-p').value);
+                const c = Number(document.getElementById('log-c').value);
+                if (p > 0 || c > 0) {
+                    this.state.daily.consumedP += p || 0;
+                    this.state.daily.consumedC += c || 0;
+                    this.save();
+                    ui.updateAppStats();
+                    document.getElementById('log-p').value = "";
+                    document.getElementById('log-c').value = "";
+                }
+            }
+
+            logWater() {
+                this.state.daily.water = (this.state.daily.water || 0) + 0.25;
+                this.save();
+                ui.updateAppStats();
+            }
+
+            saveSettings() {
+                this.state.ans.age = document.getElementById('set-age').value;
+                this.state.ans.height = document.getElementById('set-height').value;
+                this.state.ans.weight = document.getElementById('set-weight').value;
+                this.state.ans.goal = document.getElementById('set-goal').value;
+                this.state.ans.pace = document.getElementById('set-pace').value;
+                this.state.ans.level = document.getElementById('set-level').value;
+                this.state.ans.allergies = document.getElementById('set-allergies').value;
+                
+                this.state.daily.menu = this.generateDailyMenu();
+                this.save();
+                ui.updateAppStats();
+                alert("ההגדרות נשמרו בהצלחה!");
+            }
+
+            finishWorkout() {
+                this.state.workoutsCompleted += 1;
+                let newlyUnlocked = null;
+
+                treeNodes.forEach(node => {
+                    if (this.state.workoutsCompleted >= node.req && !this.state.unlockedSkills.includes(node.id)) {
+                        this.state.unlockedSkills.push(node.id);
+                        newlyUnlocked = node;
+                    }
+                });
+
+                this.save();
+                ui.renderTree();
+
+                if (newlyUnlocked) {
+                    ui.showUnlockModal(newlyUnlocked);
+                } else {
+                    alert("אימון הושלם! התקדמת על העץ שלב נוסף.");
+                    ui.switchTab('tree', document.querySelectorAll('.nav-link')[0]);
+                }
+            }
+
+            generateWorkout() {
+                const ans = this.state.ans;
+                const isExtreme = (ans.pace || "").includes("אקסטרים");
+                const level = ans.level || "אדמה";
+                const timeSelect = document.getElementById('workout-time-select');
+                const time = timeSelect ? parseInt(timeSelect.value) : 30;
+                
+                let exerciseCount = time === 30 ? 5 : (time === 60 ? 7 : 9);
+                if (isExtreme) exerciseCount += 1;
+
+                let baseReps = "8-12 חזרות";
+                let baseSets = 3;
+                let dynamicRest = "60-90 שניות";
+
+                if (level.includes("אדמה")) {
+                    baseReps = "5-8 חזרות (בניית כוח)";
+                    baseSets = 3;
+                    dynamicRest = "90 שניות מנוחה";
+                } else if (level.includes("גזע")) {
+                    baseReps = "8-12 חזרות";
+                    baseSets = 4;
+                    dynamicRest = "60 שניות מנוחה";
+                } else if (level.includes("צמרת")) {
+                    baseReps = "12-15 חזרות (סיבולת)";
+                    baseSets = 4;
+                    dynamicRest = "45 שניות מנוחה";
+                }
+
+                if (isExtreme) {
+                    baseSets += 1;
+                    dynamicRest = dynamicRest.replace("90", "60").replace("60", "45").replace("45", "30");
+                }
+
+                const hasPullup = ans.gym_access !== "בית" || (ans.has_pullup === "כן");
+                const hasDips = ans.gym_access !== "בית" || (ans.has_dips === "כן");
+
+                let available = exerciseDB.filter(ex => {
+                    if (ex.reqEq === "pullup" && !hasPullup) return false;
+                    if (ex.reqEq === "dips" && !hasDips) return false;
+                    if (!this.state.unlockedSkills.includes(ex.skill)) return false;
+                    return true;
+                });
+
+                let pool = [...available].sort(() => 0.5 - Math.random());
+                let workout = [];
+                while(workout.length < exerciseCount && available.length > 0) {
+                    if(pool.length === 0) {
+                        pool = [...available].sort(() => 0.5 - Math.random()); 
+                    }
+                    workout.push(pool.pop());
+                }
+
+                workout.sort(() => 0.5 - Math.random());
+
+                const resDiv = document.getElementById('workout-res');
+                resDiv.innerHTML = `
+                    <div style="background:var(--bg-input); padding:15px; border-radius:12px; margin-bottom:20px; border: 1px solid var(--primary); text-align:center;">
+                        <strong style="color:var(--primary); font-size:20px;">אימון מותאם ל${ans.name || 'אלוף'} ${isExtreme ? '🔥' : ''}</strong><br>
+                        <span style="font-size:13px; color:var(--text-muted);">רמת קושי: ${level.split(' ')[0]} | ${workout.length} תרגילים.</span>
+                    </div>
+                `;
+
+                resDiv.innerHTML += workout.map((ex, index) => {
+                    const isStatic = ex.type === "static";
+                    const isAdvancedSkill = ['lsit', 'backlever', 'muscleup', 'frontlever', 'planche'].includes(ex.skill);
+                    
+                    const repText = isStatic ? "MAX HOLD (החזקה)" : baseReps;
+                    const sets = baseSets + " סטים";
+                    
+                    let itemRest = dynamicRest;
+                    if (isStatic || isAdvancedSkill || isExtreme) {
+                        itemRest = "120-180 שניות (מנוחת CNS ארוכה)";
+                    }
+                    
+                    return `
+                    <div class="ex-item ${isStatic ? 'static' : ''}">
+                        <div class="ex-content">
+                            <div class="ex-info">
+                                <div style="font-weight:900; font-size:16px; color:#fff; margin-bottom: 4px;">${index + 1}. ${ex.n}</div>
+                                <div style="font-size:12px; color:${isStatic ? '#ff2a5f' : '#aaa'};">${isStatic ? '⚡ כוח סטטי ממוקד' : '💪 היפרטרופיה אישית'}</div>
+                            </div>
+                            <div class="ex-stats">
+                                <div style="color:var(--primary); font-weight:900; font-size:16px;">${sets}</div>
+                                <div style="font-size:12px; color:#fff; font-weight:bold;">${repText}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="ex-toggle" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block';">
+                            📖 איך מבצעים?
+                        </div>
+                        <div class="ex-explanation">
+                            ${ex.exp}<br><br>
+                            <span style="color:var(--primary); font-weight:bold;">⏱️ זמן מנוחה מומלץ: ${itemRest}</span>
+                        </div>
+                    </div>`;
+                }).join('');
+
+                resDiv.innerHTML += `
+                    <button onclick="engine.finishWorkout()" style="width:100%; padding:20px; border-radius:12px; border:none; background:#fff; color:#000; font-weight:900; font-size: 18px; margin-top:20px; cursor:pointer;">סיימתי! רשום לי התקדמות ⬆️</button>
+                `;
+            }
+        }
+
+        const engine = new CaliEngine();
+
+        /* =========================================
+           UI CONTROLLER
+           ========================================= */
+        const ui = {
+            step: 0,
+            moveStep(dir) {
+                const q = questions[this.step];
+                if(dir === 1) {
+                    const el = document.getElementById('q-val');
+                    if(el) engine.state.ans[q.id] = el.value.trim();
+                    if(!engine.state.ans[q.id] || (Array.isArray(engine.state.ans[q.id]) && engine.state.ans[q.id].length === 0)) {
+                        return alert("נא לענות על השאלה כדי להמשיך.");
+                    }
+                }
+                
+                this.step += dir;
+                while(this.step >= 0 && this.step < questions.length) {
+                    const nextQ = questions[this.step];
+                    if(nextQ.condition && !nextQ.condition(engine.state.ans)) this.step += dir; 
+                    else break; 
+                }
+
+                if(this.step >= questions.length) this.launch(); 
+                else if (this.step < 0) { this.step = 0; this.renderStep(); }
+                else this.renderStep();
+            },
+
+            renderStep() {
+                const q = questions[this.step];
+                document.getElementById('progress-fill').style.width = (((this.step + 1) / questions.length) * 100) + "%";
+                document.getElementById('step-info').innerText = `STEP ${this.step + 1} OF ${questions.length}`;
+                
+                let h = `<div class="q-title">${q.q}</div>`;
+                if (q.sub) h += `<div class="q-sub">${q.sub}</div>`;
+
+                if(q.type === 'select') {
+                    h += `<div class="options-list">` + q.opts.map(o => `<div class="option-item ${engine.state.ans[q.id] === o ? 'selected' : ''}" onclick="ui.selectOpt('${q.id}','${o}')">${o}</div>`).join('') + `</div>`;
+                } else {
+                    h += `<input type="${q.type}" id="q-val" value="${engine.state.ans[q.id] || ''}" placeholder="${q.ph || ''}" autocomplete="off">`;
+                }
+                
+                document.getElementById('question-box').innerHTML = h;
+                document.getElementById('btn-prev').style.visibility = this.step === 0 ? "hidden" : "visible";
+            },
+
+            selectOpt(id, val) { engine.state.ans[id] = val; this.moveStep(1); },
+
+            launch() {
+                if (engine.state.ans.level && engine.state.ans.level.includes("צמרת") && engine.state.workoutsCompleted === 0) {
+                    engine.state.workoutsCompleted = 16;
+                    engine.state.unlockedSkills = ['basics', 'lsit', 'backlever'];
+                }
+                engine.state.done = true; 
+                engine.checkMidnightReset(); 
+                engine.save();
+                
+                document.getElementById('onboarding-screen').style.transform = "translateY(-100%)";
+                document.getElementById('main-app').style.display = "flex";
+                setTimeout(() => document.getElementById('main-app').style.opacity = "1", 100);
+                
+                this.populateSettings();
+                this.renderTree();
+                this.updateAppStats();
+            },
+
+            populateSettings() {
+                const ans = engine.state.ans;
+                document.getElementById('set-age').value = ans.age || "";
+                document.getElementById('set-height').value = ans.height || "";
+                document.getElementById('set-weight').value = ans.weight || "";
+                document.getElementById('set-allergies').value = ans.allergies || "";
+                
+                const goalSelect = document.getElementById('set-goal');
+                if (ans.goal) {
+                    for(let i=0; i<goalSelect.options.length; i++) {
+                        if (ans.goal.includes(goalSelect.options[i].value.split(' ')[0])) goalSelect.selectedIndex = i;
+                    }
+                }
+                
+                const paceSelect = document.getElementById('set-pace');
+                if (ans.pace && ans.pace.includes("אקסטרים")) paceSelect.selectedIndex = 1;
+
+                const levelSelect = document.getElementById('set-level');
+                if (ans.level) {
+                    if (ans.level.includes("אדמה")) levelSelect.selectedIndex = 0;
+                    if (ans.level.includes("גזע")) levelSelect.selectedIndex = 1;
+                    if (ans.level.includes("צמרת")) levelSelect.selectedIndex = 2;
+                }
+            },
+
+            updateAppStats() {
+                engine.checkMidnightReset();
+                const ans = engine.state.ans;
+                const menu = engine.state.daily.menu;
+                
+                let planMeals = `
+                    <div class="diet-meal"><strong>ארוחת בוקר</strong><p>${menu.breakfast.n}: ${menu.breakfast.desc}</p></div>
+                    <div class="diet-meal"><strong>ביניים</strong><p>${menu.snack.n}: ${menu.snack.desc}</p></div>
+                    <div class="diet-meal"><strong>צהריים</strong><p>${menu.lunch.n}: ${menu.lunch.desc}</p></div>
+                    <div class="diet-meal"><strong>ערב</strong><p>${menu.dinner.n}: ${menu.dinner.desc}</p></div>
+                `;
+                document.getElementById('diet-plan-meals').innerHTML = planMeals;
+
+                const targetWater = Number(ans.water) || 3;
+                const currentWater = engine.state.daily.water || 0;
+                document.getElementById('ui-water').innerText = currentWater.toFixed(2) + " / " + targetWater + " L";
+                document.getElementById('water-progress').style.width = Math.min(100, (currentWater / targetWater) * 100) + "%";
+
+                const weight = Number(ans.weight) || 70;
+                const height = Number(ans.height) || 175;
+                const age = Number(ans.age) || 25;
+                const gender = ans.gender || "גבר";
+                const goalStr = ans.goal || "חיטוב";
+                const isExtreme = (ans.pace || "").includes("אקסטרים");
+                
+                let bmrBase = (10 * weight) + (6.25 * height) - (5 * age);
+                if (gender === "אישה") bmrBase -= 161;
+                else bmrBase += 5; 
+                
+                let tdee = bmrBase * 1.4; 
+                let targetCal = tdee;
+                
+                let calModifier = isExtreme ? 800 : 500;
+                if (goalStr.includes("חיטוב")) targetCal = tdee - calModifier;
+                else if (goalStr.includes("מסה")) targetCal = tdee + calModifier;
+                
+                let targetProt = weight * 2; 
+                if (isExtreme && goalStr.includes("חיטוב")) targetProt = weight * 2.5; 
+                
+                document.getElementById('nutrition-subtitle').innerHTML = `המאזן מחושב במדויק לפי: ${age} שנים, ${height} ס"מ, ${weight} ק"ג. <br><span style="color:var(--primary);">מתאפס ומחליף תפריט בחצות.</span>`;
+
+                const leftP = Math.max(0, targetProt - engine.state.daily.consumedP);
+                const leftC = Math.max(0, targetCal - engine.state.daily.consumedC);
+
+                document.getElementById('ui-p').innerText = Math.round(leftP) + "g";
+                document.getElementById('ui-c').innerText = Math.round(leftC);
+            },
+
+            renderTree() {
+                document.getElementById('ui-workouts-done').innerText = engine.state.workoutsCompleted;
+                const container = document.getElementById('tree-container');
+                let highestSkill = treeNodes[0];
+                
+                let nodesHTML = "";
+                treeNodes.forEach((node) => {
+                    const isUnlocked = engine.state.unlockedSkills.includes(node.id);
+                    if (isUnlocked) highestSkill = node;
+                    let statusText = isUnlocked ? "פתוח ✔️" : `נפתח בעוד ${Math.max(0, node.req - engine.state.workoutsCompleted)} אימונים`;
+                    
+                    nodesHTML += `
+                    <div class="tree-node ${isUnlocked ? 'unlocked' : ''}">
+                        <div class="node-icon">${node.icon}</div>
+                        <div class="node-details">
+                            <div class="node-title">${node.name}</div>
+                            <div style="font-size:11px; color:#aaa; margin-bottom:5px;">${node.desc}</div>
+                            <div class="node-req">${statusText}</div>
+                        </div>
+                    </div>`;
+                });
+                
+                const progressDiv = `<div id="tree-progress"></div>`;
+                container.innerHTML = progressDiv + nodesHTML;
+                document.getElementById('header-level').innerText = highestSkill.name.split(' (')[0];
+
+                setTimeout(() => {
+                    const maxReq = treeNodes[treeNodes.length - 1].req;
+                    let pct = (engine.state.workoutsCompleted / maxReq) * 100;
+                    document.getElementById('tree-progress').style.height = Math.min(pct, 100) + "%";
+                }, 100);
+            },
+
+            showUnlockModal(skill) {
+                const modal = document.getElementById('unlock-modal');
+                document.getElementById('unlock-icon').innerText = skill.icon;
+                document.getElementById('unlock-name').innerText = skill.name.toUpperCase();
+                modal.style.display = "flex";
+                setTimeout(() => modal.style.opacity = "1", 50);
+            },
+
+            closeModal() {
+                const modal = document.getElementById('unlock-modal');
+                modal.style.opacity = "0";
+                setTimeout(() => modal.style.display = "none", 500);
+                this.switchTab('tree', document.querySelectorAll('.nav-link')[0]);
+            },
+
+            switchTab(tabId, btn) {
+                document.getElementById('tab-tree').style.display = tabId === 'tree' ? 'block' : 'none';
+                document.getElementById('tab-nutrition').style.display = tabId === 'nutrition' ? 'block' : 'none';
+                document.getElementById('tab-workout').style.display = tabId === 'workout' ? 'block' : 'none';
+                document.getElementById('tab-settings').style.display = tabId === 'settings' ? 'block' : 'none';
+                document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            }
+        };
+
+        window.onload = () => { 
+            if (engine.state.done) {
+                ui.launch();
+            } else {
+                ui.renderStep(); 
+            }
+        };
+    </script>
+</body>
+</html>
